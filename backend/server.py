@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 from calculator import compute_chart
 from panchang import compute_panchang
+from advanced_panchang import compute_detailed_panchang
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -85,19 +86,27 @@ async def get_panchang(
     longitude: float,
     date: Optional[str] = None,
     timezone: Optional[str] = None,
+    detailed: bool = True,
 ):
-    """Get Drik-style daily Panchang for a location and date (default: today local)."""
+    """Get Drik-style daily Panchang for a location and date (default: today local).
+
+    When `detailed=true` (default) returns the full Drik Panchang: samvatsara, muhurtas,
+    calendars, lagna transits, tarabalam/chandrabalam, etc. Set `detailed=false` for a
+    lean payload (legacy behaviour).
+    """
     from datetime import date as date_cls
     if not date:
         date = date_cls.today().isoformat()
     try:
-        result = compute_panchang(
-            target_date=date,
-            latitude=latitude,
-            longitude=longitude,
+        if detailed:
+            return compute_detailed_panchang(
+                target_date=date, latitude=latitude, longitude=longitude,
+                timezone_name=timezone,
+            )
+        return compute_panchang(
+            target_date=date, latitude=latitude, longitude=longitude,
             timezone_name=timezone,
         )
-        return result
     except Exception as e:
         logging.exception("Panchang computation failed")
         raise HTTPException(status_code=500, detail=f"Panchang error: {e}")

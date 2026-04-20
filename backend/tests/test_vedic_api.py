@@ -175,10 +175,12 @@ class TestCalculateValidation:
 
 @pytest.fixture(scope="module")
 def panchang_today():
+    # legacy lean payload (detailed=false)
     r = requests.get(f"{BASE_URL}/api/get-panchang", params={
         "latitude": 28.6139,
         "longitude": 77.2090,
         "timezone": "Asia/Kolkata",
+        "detailed": "false",
     }, timeout=30)
     assert r.status_code == 200, f"Status {r.status_code}: {r.text}"
     return r.json()
@@ -186,12 +188,13 @@ def panchang_today():
 
 @pytest.fixture(scope="module")
 def panchang_thursday():
-    # 2024-01-04 was a Thursday
+    # 2024-01-04 was a Thursday — request lean payload
     r = requests.get(f"{BASE_URL}/api/get-panchang", params={
         "latitude": 28.6139,
         "longitude": 77.2090,
         "timezone": "Asia/Kolkata",
         "date": "2024-01-04",
+        "detailed": "false",
     }, timeout=30)
     assert r.status_code == 200, f"Status {r.status_code}: {r.text}"
     return r.json()
