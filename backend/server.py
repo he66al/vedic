@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from calculator import compute_chart
 from panchang import compute_panchang
 from advanced_panchang import compute_detailed_panchang
+from ayanamsa import AYANAMSA_OPTIONS
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -33,6 +34,7 @@ class CalculateRequest(BaseModel):
     longitude: float
     timezone: Optional[str] = None
     place_name: Optional[str] = None
+    ayanamsa: Optional[str] = "lahiri"
 
 
 class SavedChart(BaseModel):
@@ -59,6 +61,7 @@ async def calculate(req: CalculateRequest):
             year=year, month=month, day=day, hour=hour, minute=minute,
             latitude=req.latitude, longitude=req.longitude,
             timezone_name=req.timezone,
+            ayanamsa=req.ayanamsa or "lahiri",
         )
     except Exception as e:
         logging.exception("Chart calculation failed")
@@ -78,6 +81,15 @@ async def calculate(req: CalculateRequest):
 
     result["id"] = doc["id"]
     return result
+
+
+@api_router.get("/ayanamsa-options")
+async def get_ayanamsa_options():
+    """List available ayanamsa choices."""
+    return [
+        {"id": k, "label": v[1]}
+        for k, v in AYANAMSA_OPTIONS.items()
+    ]
 
 
 @api_router.get("/get-panchang")

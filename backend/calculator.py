@@ -10,6 +10,8 @@ import swisseph as swe
 from datetime import datetime
 from timezonefinder import TimezoneFinder
 
+from ayanamsa import set_ayanamsa, AYANAMSA_OPTIONS
+
 # Configure Swiss Ephemeris
 EPHE_PATH = str(Path(__file__).parent / "ephe")
 swe.set_ephe_path(EPHE_PATH)
@@ -256,7 +258,8 @@ def compute_ashtakavarga(planets: Dict[str, Dict[str, Any]], asc_sign: int) -> D
 
 
 def compute_chart(year: int, month: int, day: int, hour: int, minute: int,
-                  latitude: float, longitude: float, timezone_name: str | None = None) -> Dict[str, Any]:
+                  latitude: float, longitude: float, timezone_name: str | None = None,
+                  ayanamsa: str = "lahiri") -> Dict[str, Any]:
     """Main calculation entry. Takes LOCAL time + timezone; returns full chart JSON."""
 
     # Resolve timezone
@@ -274,7 +277,9 @@ def compute_chart(year: int, month: int, day: int, hour: int, minute: int,
         utc_dt.hour + utc_dt.minute / 60 + utc_dt.second / 3600,
     )
 
-    flags = swe.FLG_SIDEREAL | swe.FLG_SWIEPH | swe.FLG_SPEED
+    # Apply chosen ayanamsa
+    sidereal_flag, ayanamsa_label = set_ayanamsa(ayanamsa)
+    flags = sidereal_flag | swe.FLG_SWIEPH | swe.FLG_SPEED
 
     # Compute planets
     planets: Dict[str, Dict[str, Any]] = {}
@@ -291,7 +296,7 @@ def compute_chart(year: int, month: int, day: int, hour: int, minute: int,
     planets["Ketu"] = _planet_entry("Ketu", "Ke", ketu_lon, False)
 
     # Ascendant
-    cusps, ascmc = swe.houses_ex(jd_ut, latitude, longitude, b'P', swe.FLG_SIDEREAL)
+    cusps, ascmc = swe.houses_ex(jd_ut, latitude, longitude, b'P', sidereal_flag)
     asc_lon = ascmc[0] % 360
     asc_sign = sign_index_from_longitude(asc_lon)
     asc_entry = _planet_entry("Ascendant", "As", asc_lon, False)
@@ -338,7 +343,9 @@ def compute_chart(year: int, month: int, day: int, hour: int, minute: int,
             "latitude": latitude,
             "longitude": longitude,
             "julian_day": jd_ut,
-            "ayanamsa": swe.get_ayanamsa_ut(jd_ut),
+            "ayanamsa": swe.get_ayanamsa_ut(jd_ut) if sidereal_flag else 0.0,
+            "ayanamsa_id": ayanamsa,
+            "ayanamsa_label": ayanamsa_label,
         },
         "ascendant": asc_entry,
         "planets_data": planets_list,

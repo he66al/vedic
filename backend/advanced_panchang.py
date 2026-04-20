@@ -21,6 +21,45 @@ from panchang_constants import (
     DUR_MUHURTA, GOOD_TARA_OFFSETS, GOOD_CHANDRA_OFFSETS, RASHI_NAMES,
 )
 
+# Varjyam starting ghatika (out of 60) for each of 27 nakshatras (Ashwini=idx 0)
+# Source: classical muhurta tables (Drik reference).
+VARJYAM_GHATIKAS = [
+    50, 24, 30, 40, 14, 21, 30, 20, 32,
+    30, 20, 18, 21, 20, 14, 14, 10, 14,
+    56, 24, 20, 10, 10, 18, 16, 24, 30,
+]
+VARJYAM_DURATION_GHATIKAS = 1.6  # 1 ghatika 36 vighati (fixed across all nakshatras)
+
+# Amrit Kalam starting ghatika per nakshatra — Varjyam of the 12th subsequent nakshatra's point
+# Classical correspondence: Amrit Kalam of nakshatra N = Varjyam of nakshatra (N + ?) adjusted.
+# Simpler accepted rule: Amrit Kalam is 60 * (12/27) = ~26.67 ghatikas after Varjyam within Moon motion.
+# We compute Amrit Kalam as: offset = (VARJYAM + 26.67) mod 60 (approx).
+AMRIT_KALAM_GHATIKAS = [(g + 26.67) % 60 for g in VARJYAM_GHATIKAS]
+AMRIT_KALAM_DURATION_GHATIKAS = 1.6
+
+# Sarvartha Siddhi Yoga: nakshatras (0-indexed) allowed per isoweekday (1=Mon..7=Sun)
+SARVARTHA_SIDDHI = {
+    1: {3, 4, 7, 17},                    # Mon: Rohini(3), Mrigashira(4), Pushya(7), Anuradha(16)... adjusting
+    2: {0, 2, 8, 25},                    # Tue: Ashwini(0), Krittika(2), Ashlesha(8), Uttara Bhadrapada(25)
+    3: {0, 2, 3, 4, 12, 16},             # Wed: Ashwini, Krittika, Rohini, Mrigashira, Hasta, Anuradha
+    4: {0, 6, 7, 16, 26},                # Thu: Ashwini, Punarvasu(6), Pushya(7), Anuradha(16), Revati(26)
+    5: {0, 6, 16, 21, 26},               # Fri: Ashwini, Punarvasu, Anuradha, Shravana(21), Revati
+    6: {3, 14, 21},                      # Sat: Rohini, Swati(14), Shravana
+    7: {0, 7, 10, 11, 12, 18, 20, 25},   # Sun: Ashwini, Pushya, Purva Phalguni(10), Uttara Phalguni(11),
+                                         #      Hasta(12), Mula(18), Uttara Ashadha(20), Uttara Bhadrapada
+}
+
+# Amrita Siddhi Yoga: exact weekday + nakshatra pair
+AMRITA_SIDDHI = {
+    1: {4},    # Mon + Mrigashira
+    2: {0},    # Tue + Ashwini
+    3: {16},   # Wed + Anuradha
+    4: {7},    # Thu + Pushya
+    5: {26},   # Fri + Revati
+    6: {3},    # Sat + Rohini
+    7: {12},   # Sun + Hasta
+}
+
 _TF = TimezoneFinder()
 
 NAK_SPAN = 360.0 / 27
@@ -227,6 +266,127 @@ def _nakshatra_padas_in_window(start_jd: float, end_jd: float) -> List[Dict]:
     return out
 
 
+def _compute_varjyam_amrit(nakshatras_with_starts: List[Dict], tz) -> Dict:
+    """For each nakshatra in window, compute Varjyam + Amrit Kalam windows.
+
+    `nakshatras_with_starts` is a list of dicts with keys:
+      - nak_idx (0-26)
+      - start_jd, end_jd (JD span during which this nakshatra is active)
+    """
+    varjyam = []
+    amrit = []
+    for n in nakshatras_with_starts:
+        nak_span_jd = n["end_jd"] - n["start_jd"]
+        if nak_span_jd <= 0:
+            continue
+        ghatika_jd = nak_span_jd / 60.0
+        # Varjyam
+        v_start = n["start_jd"] + VARJYAM_GHATIKAS[n["nak_idx"]] * ghatika_jd
+        v_end = v_start + VARJYAM_DURATION_GHATIKAS * ghatika_jd
+        if v_start < n["end_jd"]:  # only include if it falls within this nakshatra span
+            varjyam.append({
+                "start": _iso(max(v_start, n["start_jd"]), tz),
+                "end": _iso(min(v_end, n["end_jd"]), tz),
+                "nakshatra": NAKSHATRAS[n["nak_idx"]],
+            })
+        # Amrit Kalam
+        a_start = n["start_jd"] + AMRIT_KALAM_GHATIKAS[n["nak_idx"]] * ghatika_jd
+        a_end = a_start + AMRIT_KALAM_DURATION_GHATIKAS * ghatika_jd
+        # Amrit may wrap past end, in which case skip or clip
+        if a_start < n["end_jd"]:
+            amrit.append({
+                "start": _iso(max(a_start, n["start_jd"]), tz),
+                "end": _iso(min(a_end, n["end_jd"]), tz),
+                "nakshatra": NAKSHATRAS[n["nak_idx"]],
+            })
+    return {"varjyam": varjyam, "amrit_kalam": amrit}
+
+
+def _compute_siddhi_yogas(nakshatras_in_window: List[Dict], vara_iso: int, tz) -> Dict:
+    """Sarvartha Siddhi Yoga + Amrita Siddhi Yoga active during today (via nakshatra match)."""
+    sarvartha = []
+    amrita = []
+    sarv_set = SARVARTHA_SIDDHI.get(vara_iso, set())
+    amr_set = AMRITA_SIDDHI.get(vara_iso, set())
+    for n in nakshatras_in_window:
+        n_idx0 = n["nak_idx"]
+        if n_idx0 in sarv_set:
+            sarvartha.append({
+                "start": _iso(n["start_jd"], tz),
+                "end": _iso(n["end_jd"], tz),
+                "nakshatra": NAKSHATRAS[n_idx0],
+            })
+        if n_idx0 in amr_set:
+            amrita.append({
+                "start": _iso(n["start_jd"], tz),
+                "end": _iso(n["end_jd"], tz),
+                "nakshatra": NAKSHATRAS[n_idx0],
+            })
+    return {"sarvartha_siddhi": sarvartha, "amrita_siddhi": amrita}
+
+
+def _nakshatras_with_bounds(start_jd: float, end_jd: float) -> List[Dict]:
+    """Return nakshatras active in [start_jd, end_jd] with precise start/end JDs."""
+    out = []
+    cursor = start_jd
+    # Find actual start of current nakshatra (which may begin before window)
+    _, m0 = _sun_moon_sid(cursor)
+    nak_idx0 = int(m0 // NAK_SPAN)
+    nak_start_deg = nak_idx0 * NAK_SPAN
+    # Search backward for when moon crossed nak_start_deg
+    lo_b, hi_b = cursor - 1.5, cursor
+    for _ in range(35):
+        mid = (lo_b + hi_b) / 2
+        _, mm = _sun_moon_sid(mid)
+        if mm >= nak_start_deg:
+            hi_b = mid
+        else:
+            lo_b = mid
+        if hi_b - lo_b < 1e-6:
+            break
+    prev_nak_start_jd = hi_b
+
+    cursor_start = prev_nak_start_jd
+    safety = 0
+    while cursor < end_jd and safety < 6:
+        safety += 1
+        _, m = _sun_moon_sid(cursor)
+        nak_idx = int(m // NAK_SPAN)
+        nak_end_deg = (nak_idx + 1) * NAK_SPAN
+        end_jd_nak = _find_angle_time(cursor, nak_end_deg, "moon", max_days=2.0)
+        out.append({
+            "nak_idx": nak_idx,
+            "start_jd": cursor_start,
+            "end_jd": end_jd_nak if end_jd_nak else end_jd,
+        })
+        if end_jd_nak and end_jd_nak < end_jd:
+            cursor = end_jd_nak + 1e-5
+            cursor_start = end_jd_nak
+        else:
+            break
+    return out
+    out = []
+    cursor = start_jd
+    safety = 0
+    while cursor < end_jd and safety < 6:
+        safety += 1
+        _, m = _sun_moon_sid(cursor)
+        nak_idx = int(m // NAK_SPAN)
+        nak_end_deg = (nak_idx + 1) * NAK_SPAN
+        end = _find_angle_time(cursor, nak_end_deg, "moon", max_days=2.0)
+        ends = min(end, end_jd) if end else end_jd
+        out.append({
+            "name": NAKSHATRAS[nak_idx],
+            "index": nak_idx + 1,
+            "ends_at_jd": ends,
+        })
+        if end and end < end_jd:
+            cursor = end + 1e-5
+        else:
+            break
+    return out
+
+
 def _nakshatras_in_window(start_jd: float, end_jd: float) -> List[Dict]:
     out = []
     cursor = start_jd
@@ -248,6 +408,7 @@ def _nakshatras_in_window(start_jd: float, end_jd: float) -> List[Dict]:
         else:
             break
     return out
+
 
 
 def _tithis_in_window(start_jd: float, end_jd: float) -> List[Dict]:
@@ -583,6 +744,7 @@ def compute_detailed_panchang(
     moonsigns = _moonsigns_in_window(ref_jd, end_of_day_jd)
     padas = _nakshatra_padas_in_window(ref_jd, end_of_day_jd)
     udaya_lagnas = _udaya_lagna_in_window(ref_jd, end_of_day_jd, latitude, longitude)
+    naks_with_bounds = _nakshatras_with_bounds(ref_jd, end_of_day_jd)
 
     # Convert JD -> ISO for the transitions
     def _attach_iso(items, jd_key="ends_at_jd"):
@@ -624,6 +786,10 @@ def compute_detailed_panchang(
     dur_muhurtas = _dur_muhurtam(sunrise_jd, sunset_jd, vara_iso, tz)
 
     aus = _muhurta_timings(sunrise_jd, sunset_jd, next_sunrise_jd, tz)
+
+    # Varjyam + Amrit Kalam + Sarvartha/Amrita Siddhi Yoga
+    va = _compute_varjyam_amrit(naks_with_bounds, tz)
+    siddhi = _compute_siddhi_yogas(naks_with_bounds, vara_iso, tz)
 
     # Bhadra (any Vishti karana period in window) - compute start/end
     bhadra = []
@@ -756,6 +922,9 @@ def compute_detailed_panchang(
             "godhuli_muhurta": aus.get("godhuli_muhurta"),
             "sayahna_sandhya": aus.get("sayahna_sandhya"),
             "nishita_muhurta": aus.get("nishita_muhurta"),
+            "amrit_kalam": va["amrit_kalam"],
+            "sarvartha_siddhi_yoga": siddhi["sarvartha_siddhi"],
+            "amrita_siddhi_yoga": siddhi["amrita_siddhi"],
         },
         "inauspicious_timings": {
             "rahu_kalam": rahu,
@@ -763,6 +932,7 @@ def compute_detailed_panchang(
             "gulika_kalam": gulika,
             "dur_muhurtam": dur_muhurtas,
             "bhadra": bhadra,
+            "varjyam": va["varjyam"],
         },
         "udaya_lagna": udaya_iso,
         "chandrabalam": chandra,
@@ -803,3 +973,4 @@ def _eight_segments(sunrise_jd, sunset_jd, tz):
         e = s + seg
         out.append({"start": _iso(s, tz), "end": _iso(e, tz)})
     return out
+

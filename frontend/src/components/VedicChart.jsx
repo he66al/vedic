@@ -38,8 +38,22 @@ const HOUSE_CENTROIDS = {
     12: { x: 300, y: 50  },
 };
 
-// Sign position labels also near the centroids, slightly above planets
-const SIGN_LABEL_OFFSET = { x: 0, y: -34 };
+// Rashi NUMBER label positions (placed near the intersection of two inner triangles of each house)
+// These positions are chosen to be at the "tip" of each house diamond, distinct from planet text.
+const SIGN_LABEL_POSITIONS = {
+    1:  { x: 200, y: 34,  anchor: "middle" },
+    2:  { x: 68,  y: 18,  anchor: "start"  },
+    3:  { x: 24,  y: 68,  anchor: "start"  },
+    4:  { x: 34,  y: 200, anchor: "start"  },
+    5:  { x: 24,  y: 332, anchor: "start"  },
+    6:  { x: 68,  y: 382, anchor: "start"  },
+    7:  { x: 200, y: 366, anchor: "middle" },
+    8:  { x: 332, y: 382, anchor: "end"    },
+    9:  { x: 376, y: 332, anchor: "end"    },
+    10: { x: 366, y: 200, anchor: "end"    },
+    11: { x: 376, y: 68,  anchor: "end"    },
+    12: { x: 332, y: 18,  anchor: "end"    },
+};
 
 const SIGN_SHORT = [
     "Ar", "Ta", "Ge", "Cn", "Le", "Vi",
@@ -96,21 +110,22 @@ export default function VedicChart({ houseMap, ascSign, title, testId }) {
                         const c = HOUSE_CENTROIDS[h];
                         const sign = signForHouse(h);
                         const planets = houseMap?.[h] || [];
+                        const labelPos = SIGN_LABEL_POSITIONS[h];
                         return (
                             <g key={h} data-testid={`${testId}-house-${h}`}>
-                                {/* Sign number (tiny, in corner) */}
+                                {/* Rashi number (prominent, in house corner) */}
                                 <text
-                                    x={c.x + SIGN_LABEL_OFFSET.x}
-                                    y={c.y + SIGN_LABEL_OFFSET.y}
-                                    textAnchor="middle"
+                                    x={labelPos.x}
+                                    y={labelPos.y}
+                                    textAnchor={labelPos.anchor}
                                     dominantBaseline="middle"
                                     className="font-serif"
-                                    fontSize="13"
+                                    fontSize="18"
+                                    fontWeight="700"
                                     fill="#8B1E0F"
-                                    opacity="0.75"
-                                    fontStyle="italic"
+                                    opacity="0.9"
                                 >
-                                    {sign} · {SIGN_SHORT[sign - 1]}
+                                    {sign}
                                 </text>
                                 {/* Planet abbreviations in house */}
                                 {planets.map((abbr, idx) => {

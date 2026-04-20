@@ -18,7 +18,18 @@ const DEFAULT_FORM = {
     latitude: 28.6139,
     longitude: 77.2090,
     timezone: "Asia/Kolkata",
+    ayanamsa: "lahiri",
 };
+
+const AYANAMSA_OPTIONS = [
+    { id: "lahiri",     label: "N.C. Lahiri (Chitrapaksha)" },
+    { id: "kp_new",     label: "K.P. New" },
+    { id: "kp_old",     label: "K.P. Old" },
+    { id: "raman",      label: "B.V. Raman" },
+    { id: "kp_khullar", label: "K.P. Khullar" },
+    { id: "sayan",      label: "Sāyana (Tropical)" },
+    { id: "manoj",      label: "Manoj (Lahiri ICRC)" },
+];
 
 function MandalaLoader({ size = 24 }) {
     return (
@@ -202,6 +213,21 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
                     }));
                 }}
             />
+            <div>
+                <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
+                    Ayanāṁśa
+                </label>
+                <select
+                    data-testid="ayanamsa-select"
+                    value={form.ayanamsa || "lahiri"}
+                    onChange={(e) => update("ayanamsa", e.target.value)}
+                    className="w-full bg-white border border-[#E3D5C1] rounded-sm px-3 py-2.5 font-sans text-sm text-[#2C241B] focus:outline-none focus:ring-1 focus:ring-[#D35400] focus:border-[#D35400]"
+                >
+                    {AYANAMSA_OPTIONS.map((o) => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
@@ -271,7 +297,7 @@ function BirthHeader({ data, placeName }) {
                 <div><span className="text-[#635647]">Timezone:</span> {b.timezone}</div>
                 <div><span className="text-[#635647]">Latitude:</span> {b.latitude.toFixed(4)}°</div>
                 <div><span className="text-[#635647]">Longitude:</span> {b.longitude.toFixed(4)}°</div>
-                <div><span className="text-[#635647]">Ayanamsa:</span> {b.ayanamsa.toFixed(4)}° (Lahiri)</div>
+                <div><span className="text-[#635647]">Ayanamsa:</span> {b.ayanamsa.toFixed(4)}° <span className="text-[#C5A059]">({b.ayanamsa_label || "Lahiri"})</span></div>
                 <div><span className="text-[#635647]">Julian Day:</span> {b.julian_day.toFixed(3)}</div>
             </div>
         </div>

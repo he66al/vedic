@@ -428,6 +428,27 @@ export default function PanchangView({ defaultLocation }) {
                             <TimeBand testId="band-nishita" title="Niśīta Muhūrta"
                                       window={data.auspicious_timings.nishita_muhurta}
                                       color="#2F7D32" desc="Mid-night meditation hour" tz={tz} refDate={refDate} />
+                            {(data.auspicious_timings.amrit_kalam || []).map((a, i) => (
+                                <TimeBand key={`am-${i}`} testId={`band-amrit-${i}`}
+                                          title="Amṛit Kāḷam"
+                                          window={a} color="#1B5E20"
+                                          desc={`Nectar window · ${a.nakshatra}`}
+                                          tz={tz} refDate={refDate} />
+                            ))}
+                            {(data.auspicious_timings.sarvartha_siddhi_yoga || []).map((s, i) => (
+                                <TimeBand key={`ss-${i}`} testId={`band-sarvartha-${i}`}
+                                          title="Sarvārtha Siddhi Yoga"
+                                          window={s} color="#2F7D32"
+                                          desc={`All endeavors succeed · ${s.nakshatra}`}
+                                          tz={tz} refDate={refDate} />
+                            ))}
+                            {(data.auspicious_timings.amrita_siddhi_yoga || []).map((s, i) => (
+                                <TimeBand key={`asd-${i}`} testId={`band-amrita-siddhi-${i}`}
+                                          title="Amṛita Siddhi Yoga"
+                                          window={s} color="#1B5E20"
+                                          desc={`Supremely auspicious · ${s.nakshatra}`}
+                                          tz={tz} refDate={refDate} />
+                            ))}
                         </div>
                     </Section>
 
@@ -452,6 +473,13 @@ export default function PanchangView({ defaultLocation }) {
                                 <TimeBand key={`b-${i}`} testId={`band-bhadra-${i}`}
                                           title="Bhadra (Viṣṭi)"
                                           window={b} color="#8B1E0F" desc="Vishti karana · inauspicious" tz={tz} refDate={refDate} />
+                            ))}
+                            {(data.inauspicious_timings.varjyam || []).map((v, i) => (
+                                <TimeBand key={`v-${i}`} testId={`band-varjyam-${i}`}
+                                          title="Varjyam"
+                                          window={v} color="#8B1E0F"
+                                          desc={`Moon's nak poison point · ${v.nakshatra}`}
+                                          tz={tz} refDate={refDate} />
                             ))}
                         </div>
                     </Section>
