@@ -461,51 +461,162 @@ function AshtakavargaTable({ ashtakavarga }) {
 
 function ChartTabs({ data, chartStyle }) {
     const { t } = useI18n();
+    const chartRef = useRef();
     const [tab, setTab] = useState("d1");
-    const tabs = [
-        { id: "d1", label: t("tab_d1_rashi"), subtitle: t("tab_d1_sub") },
-        { id: "d2", label: t("tab_d2_hora"), subtitle: t("tab_d2_sub") },
-        { id: "d9", label: t("tab_d9_nav"), subtitle: t("tab_d9_sub") },
-    ];
-    const chartMap = {
-        d1: { map: data.d1_chart, asc: data.d1_asc_sign, title: t("rashi_chart_d1") },
-        d2: { map: data.d2_chart, asc: data.d2_asc_sign, title: t("hora_chart_d2") },
-        d9: { map: data.d9_chart, asc: data.d9_asc_sign, title: t("navamsa_chart_d9") },
+    const vargaKeys = data.varga_order || [1, 2, 9];
+    const vargas = data.vargas || {};
+
+    const downloadPNG = async () => {
+        try {
+            const html2canvas = (await import("html2canvas")).default;
+            const el = chartRef.current;
+            if (!el) return;
+            const canvas = await html2canvas(el, {
+                backgroundColor: "#FCFAF5",
+                scale: 2,
+            });
+            const link = document.createElement("a");
+            link.download = `kundali_${tab}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch (e) {
+            console.error("Download failed", e);
+        }
     };
-    const active = chartMap[tab];
+
+    const shareChart = async () => {
+        try {
+            const html2canvas = (await import("html2canvas")).default;
+            const el = chartRef.current;
+            if (!el) return;
+            const canvas = await html2canvas(el, {
+                backgroundColor: "#FCFAF5",
+                scale: 2,
+            });
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                const file = new File([blob], `kundali_${tab}.png`, { type: "image/png" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: `${tab.toUpperCase()} Kundali Chart`,
+                        text: "My Vedic astrology chart",
+                        files: [file],
+                    });
+                } else {
+                    // Fallback: download the image
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `kundali_${tab}.png`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }
+            });
+        } catch (e) {
+            console.error("Share failed", e);
+        }
+    };
+
+    const downloadPDF = async () => {
+        try {
+            const html2canvas = (await import("html2canvas")).default;
+            const { jsPDF } = await import("jspdf");
+            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+            const pageW = 210, pageH = 297;
+            let first = true;
+            for (const n of vargaKeys) {
+                const key = `d${n}`;
+                setTab(key);
+                // Wait a tick for React to re-render
+                await new Promise((r) => setTimeout(r, 350));
+                const el = chartRef.current;
+                if (!el) continue;
+                const canvas = await html2canvas(el, { backgroundColor: "#FCFAF5", scale: 2 });
+                const img = canvas.toDataURL("image/png");
+                if (!first) doc.addPage();
+                first = false;
+                const w = pageW - 20;
+                const h = (canvas.height / canvas.width) * w;
+                doc.addImage(img, "PNG", 10, (pageH - h) / 2, w, h);
+            }
+            doc.save("kundali_all_vargas.pdf");
+            setTab("d1");
+        } catch (e) {
+            console.error("PDF export failed", e);
+        }
+    };
+
+    const active = vargas[tab] || { chart: data.d1_chart, asc_sign: data.d1_asc_sign, name: "Rāśi", division: 1 };
     const ChartComponent = chartStyle === "south" ? SouthIndianChart : VedicChart;
 
     return (
         <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-8 card-lift">
-            <div role="tablist" className="flex gap-6 border-b border-[#E3D5C1] mb-6 overflow-x-auto">
-                {tabs.map((tb) => (
-                    <button
-                        key={tb.id}
-                        data-testid={`tab-${tb.id}`}
-                        role="tab"
-                        aria-selected={tab === tb.id}
-                        onClick={() => setTab(tb.id)}
-                        className={`py-3 px-1 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
-                            tab === tb.id
-                                ? "text-[#8B1E0F] border-[#8B1E0F]"
-                                : "text-[#635647] border-transparent hover:text-[#8B1E0F]"
-                        }`}
-                    >
-                        <div className="flex flex-col items-start">
-                            <span className="tracking-wide">{tb.label}</span>
-                            <span className="text-[10px] uppercase tracking-[0.15em] text-[#C5A059] mt-0.5">
-                                {tb.subtitle}
-                            </span>
-                        </div>
-                    </button>
-                ))}
+            {/* Action toolbar */}
+            <div className="flex justify-end gap-2 mb-3">
+                <button
+                    data-testid="chart-download-png"
+                    onClick={downloadPNG}
+                    className="text-xs font-semibold uppercase tracking-wider text-[#8B1E0F] hover:bg-[#8B1E0F]/10 border border-[#8B1E0F]/60 px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
+                >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    PNG
+                </button>
+                <button
+                    data-testid="chart-download-pdf"
+                    onClick={downloadPDF}
+                    className="text-xs font-semibold uppercase tracking-wider text-[#8B1E0F] hover:bg-[#8B1E0F]/10 border border-[#8B1E0F]/60 px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
+                >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    PDF (All)
+                </button>
+                <button
+                    data-testid="chart-share"
+                    onClick={shareChart}
+                    className="text-xs font-semibold uppercase tracking-wider text-[#8B1E0F] hover:bg-[#8B1E0F]/10 border border-[#8B1E0F]/60 px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
+                >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    Share
+                </button>
             </div>
-            <ChartComponent
-                houseMap={active.map}
-                ascSign={active.asc}
-                title={active.title}
-                testId={`chart-${tab}`}
-            />
+
+            {/* Divisional chart tabs - scrollable */}
+            <div role="tablist" className="flex gap-2 border-b border-[#E3D5C1] mb-6 overflow-x-auto pb-0" data-testid="varga-tabs">
+                {vargaKeys.map((n) => {
+                    const key = `d${n}`;
+                    const v = vargas[key] || {};
+                    return (
+                        <button
+                            key={key}
+                            data-testid={`tab-${key}`}
+                            role="tab"
+                            aria-selected={tab === key}
+                            onClick={() => setTab(key)}
+                            className={`py-3 px-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-all flex flex-col items-start ${
+                                tab === key
+                                    ? "text-[#8B1E0F] border-[#8B1E0F]"
+                                    : "text-[#635647] border-transparent hover:text-[#8B1E0F]"
+                            }`}
+                        >
+                            <span className="tracking-wide text-sm">D{n}</span>
+                            <span className="text-[9px] uppercase tracking-[0.12em] text-[#C5A059] mt-0.5">
+                                {v.name || ""}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div ref={chartRef} className="bg-[#FCFAF5] p-3 rounded-sm">
+                <ChartComponent
+                    houseMap={active.chart}
+                    ascSign={active.asc_sign}
+                    title={`${active.name} · D${active.division}`}
+                    testId={`chart-${tab}`}
+                />
+                <p className="text-center text-xs text-[#635647] mt-3 italic">
+                    {active.subtitle || ""}
+                </p>
+            </div>
             <p className="text-center text-xs text-[#635647] mt-4 italic">
                 {t("lagna_caption")}
             </p>

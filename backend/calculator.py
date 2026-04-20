@@ -11,6 +11,7 @@ from datetime import datetime
 from timezonefinder import TimezoneFinder
 
 from ayanamsa import set_ayanamsa, AYANAMSA_OPTIONS
+from vargas import varga_sign, VARGA_ORDER, VARGA_NAMES, VARGA_SUBTITLE
 
 # Configure Swiss Ephemeris
 EPHE_PATH = str(Path(__file__).parent / "ephe")
@@ -306,23 +307,32 @@ def compute_chart(year: int, month: int, day: int, hour: int, minute: int,
         p["house"] = ((p["sign_id"] - asc_sign) % 12) + 1
     asc_entry["house"] = 1
 
-    # Build D1 chart: dict of house -> [planet abbrs]
-    d1_chart = _build_house_map(planets, asc_sign, key="sign_id")
-    d1_chart[1].insert(0, "As")
+    # === Build all divisional charts (D1..D60) ===
+    varga_charts: Dict[str, Any] = {}
+    for n in VARGA_ORDER:
+        v_asc_sign = varga_sign(asc_lon, n)
+        house_map = {i: [] for i in range(1, 13)}
+        # Populate with planets
+        for p in planets.values():
+            p_sign = varga_sign(p["longitude"], n)
+            house = ((p_sign - v_asc_sign) % 12) + 1
+            house_map[house].append(p["abbr"])
+            # Store D-n sign on each planet for later tables
+            p[f"d{n}_sign"] = p_sign
+        # Put "As" in house 1
+        house_map[1].insert(0, "As")
+        varga_charts[f"d{n}"] = {
+            "chart": house_map,
+            "asc_sign": v_asc_sign,
+            "name": VARGA_NAMES[n],
+            "subtitle": VARGA_SUBTITLE[n],
+            "division": n,
+        }
 
-    # D2 chart
-    for p in planets.values():
-        p["d2_sign"] = d2_sign_index(p["longitude"])
-    d2_asc_sign = d2_sign_index(asc_lon)
-    d2_chart = _build_house_map(planets, d2_asc_sign, key="d2_sign")
-    d2_chart[1].insert(0, "As")
-
-    # D9 chart
-    for p in planets.values():
-        p["d9_sign"] = d9_sign_index(p["longitude"])
-    d9_asc_sign = d9_sign_index(asc_lon)
-    d9_chart = _build_house_map(planets, d9_asc_sign, key="d9_sign")
-    d9_chart[1].insert(0, "As")
+    # Preserve legacy top-level keys for backward-compat
+    d1_chart = varga_charts["d1"]["chart"]
+    d2_chart = varga_charts["d2"]["chart"]
+    d9_chart = varga_charts["d9"]["chart"]
 
     # Vimshottari Dasha
     dasha = compute_vimshottari_dasha(planets["Moon"]["longitude"], utc_dt.replace(tzinfo=None))
@@ -353,8 +363,10 @@ def compute_chart(year: int, month: int, day: int, hour: int, minute: int,
         "d2_chart": d2_chart,
         "d9_chart": d9_chart,
         "d1_asc_sign": asc_sign,
-        "d2_asc_sign": d2_asc_sign,
-        "d9_asc_sign": d9_asc_sign,
+        "d2_asc_sign": varga_charts["d2"]["asc_sign"],
+        "d9_asc_sign": varga_charts["d9"]["asc_sign"],
+        "vargas": varga_charts,
+        "varga_order": VARGA_ORDER,
         "dasha": dasha,
         "ashtakavarga": ashtakavarga,
     }
