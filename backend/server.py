@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timezone
 
 from calculator import compute_chart
+from panchang import compute_panchang
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -76,6 +77,30 @@ async def calculate(req: CalculateRequest):
 
     result["id"] = doc["id"]
     return result
+
+
+@api_router.get("/get-panchang")
+async def get_panchang(
+    latitude: float,
+    longitude: float,
+    date: Optional[str] = None,
+    timezone: Optional[str] = None,
+):
+    """Get Drik-style daily Panchang for a location and date (default: today local)."""
+    from datetime import date as date_cls
+    if not date:
+        date = date_cls.today().isoformat()
+    try:
+        result = compute_panchang(
+            target_date=date,
+            latitude=latitude,
+            longitude=longitude,
+            timezone_name=timezone,
+        )
+        return result
+    except Exception as e:
+        logging.exception("Panchang computation failed")
+        raise HTTPException(status_code=500, detail=f"Panchang error: {e}")
 
 
 app.include_router(api_router)

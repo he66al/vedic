@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import VedicChart from "./components/VedicChart";
+import PanchangView from "./components/PanchangView";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -468,6 +469,7 @@ function Header() {
 }
 
 export default function App() {
+    const [view, setView] = useState("kundali"); // "kundali" | "panchang"
     const [form, setForm] = useState(DEFAULT_FORM);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -508,50 +510,94 @@ export default function App() {
         <div className="parchment-bg min-h-screen">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <Header />
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 pb-20">
-                    <aside className="lg:col-span-4 xl:col-span-3">
-                        <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift sticky top-6">
-                            <h2 className="font-serif text-2xl text-[#2C241B] mb-1">Birth Details</h2>
-                            <p className="text-xs text-[#635647] mb-5">
-                                Enter the native's time & place of birth
-                            </p>
-                            <BirthForm
-                                form={form}
-                                setForm={setForm}
-                                onSubmit={onSubmit}
-                                loading={loading}
-                            />
-                            {error && (
-                                <div
-                                    data-testid="error-banner"
-                                    className="mt-4 border border-[#8B1E0F]/40 bg-[#8B1E0F]/5 text-[#8B1E0F] text-xs p-3 rounded-sm"
-                                >
-                                    {error}
+
+                {/* Top-level view switcher */}
+                <nav
+                    role="tablist"
+                    data-testid="main-nav"
+                    className="flex justify-center gap-3 sm:gap-8 mb-10 border-b border-[#E3D5C1] pb-0"
+                >
+                    {[
+                        { id: "kundali", label: "Kuṇḍalī · Birth Chart" },
+                        { id: "panchang", label: "Pañcāṅga · Today" },
+                    ].map((t) => (
+                        <button
+                            key={t.id}
+                            data-testid={`nav-${t.id}`}
+                            role="tab"
+                            aria-selected={view === t.id}
+                            onClick={() => setView(t.id)}
+                            className={`py-3 px-4 sm:px-6 text-sm sm:text-base font-serif tracking-wide border-b-2 transition-all whitespace-nowrap ${
+                                view === t.id
+                                    ? "text-[#8B1E0F] border-[#8B1E0F]"
+                                    : "text-[#635647] border-transparent hover:text-[#8B1E0F]"
+                            }`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </nav>
+
+                {view === "kundali" && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 pb-20">
+                        <aside className="lg:col-span-4 xl:col-span-3">
+                            <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift sticky top-6">
+                                <h2 className="font-serif text-2xl text-[#2C241B] mb-1">Birth Details</h2>
+                                <p className="text-xs text-[#635647] mb-5">
+                                    Enter the native's time &amp; place of birth
+                                </p>
+                                <BirthForm
+                                    form={form}
+                                    setForm={setForm}
+                                    onSubmit={onSubmit}
+                                    loading={loading}
+                                />
+                                {error && (
+                                    <div
+                                        data-testid="error-banner"
+                                        className="mt-4 border border-[#8B1E0F]/40 bg-[#8B1E0F]/5 text-[#8B1E0F] text-xs p-3 rounded-sm"
+                                    >
+                                        {error}
+                                    </div>
+                                )}
+                            </div>
+                        </aside>
+                        <main className="lg:col-span-8 xl:col-span-9 space-y-6 lg:space-y-8">
+                            {loading && !data && (
+                                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                                    <MandalaLoader size={64} />
+                                    <p className="font-serif text-[#635647] italic">Consulting the heavens...</p>
                                 </div>
                             )}
-                        </div>
-                    </aside>
-                    <main className="lg:col-span-8 xl:col-span-9 space-y-6 lg:space-y-8">
-                        {loading && !data && (
-                            <div className="flex flex-col items-center justify-center py-24 gap-4">
-                                <MandalaLoader size={64} />
-                                <p className="font-serif text-[#635647] italic">Consulting the heavens...</p>
-                            </div>
-                        )}
-                        {data && (
-                            <>
-                                <BirthHeader data={data} placeName={form.place_name} />
-                                <ChartTabs data={data} />
-                                <PlanetsTable
-                                    planets={data.planets_data}
-                                    ascendant={data.ascendant}
-                                />
-                                <DashaTable dasha={data.dasha} />
-                                <AshtakavargaTable ashtakavarga={data.ashtakavarga} />
-                            </>
-                        )}
-                    </main>
-                </div>
+                            {data && (
+                                <>
+                                    <BirthHeader data={data} placeName={form.place_name} />
+                                    <ChartTabs data={data} />
+                                    <PlanetsTable
+                                        planets={data.planets_data}
+                                        ascendant={data.ascendant}
+                                    />
+                                    <DashaTable dasha={data.dasha} />
+                                    <AshtakavargaTable ashtakavarga={data.ashtakavarga} />
+                                </>
+                            )}
+                        </main>
+                    </div>
+                )}
+
+                {view === "panchang" && (
+                    <div className="pb-20">
+                        <PanchangView
+                            defaultLocation={{
+                                place_name: form.place_name,
+                                latitude: form.latitude,
+                                longitude: form.longitude,
+                                timezone: form.timezone,
+                            }}
+                        />
+                    </div>
+                )}
+
                 <footer className="text-center text-xs text-[#635647] pb-10">
                     <div className="divider-ornate max-w-md mx-auto mb-3">
                         <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">॥ शुभम् ॥</span>
