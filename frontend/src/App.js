@@ -3,6 +3,7 @@ import axios from "axios";
 import VedicChart from "./components/VedicChart";
 import SouthIndianChart from "./components/SouthIndianChart";
 import PanchangView from "./components/PanchangView";
+import MuhurtaFinder from "./components/MuhurtaFinder";
 import { useI18n, LanguageSwitcher } from "./i18n";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -706,6 +707,7 @@ export default function App() {
                     {[
                         { id: "kundali", label: t("nav_kundali") },
                         { id: "panchang", label: t("nav_panchang") },
+                        { id: "muhurta", label: t("nav_muhurta") },
                     ].map((tb) => (
                         <button
                             key={tb.id}
@@ -774,6 +776,19 @@ export default function App() {
                 {view === "panchang" && (
                     <div className="pb-20">
                         <PanchangView
+                            defaultLocation={{
+                                place_name: form.place_name,
+                                latitude: form.latitude,
+                                longitude: form.longitude,
+                                timezone: form.timezone,
+                            }}
+                        />
+                    </div>
+                )}
+
+                {view === "muhurta" && (
+                    <div className="pb-20">
+                        <MuhurtaFinder
                             defaultLocation={{
                                 place_name: form.place_name,
                                 latitude: form.latitude,

@@ -217,10 +217,13 @@ def find_muhurtas(
 
     birth_nak_idx0 = (birth_nakshatra_id - 1) if birth_nakshatra_id else None
     results: List[Dict[str, Any]] = []
+    resolved_tz: Optional[str] = None
     for i in range(span):
         d = s + timedelta(days=i)
         try:
             panch = compute_detailed_panchang(d.isoformat(), latitude, longitude, timezone_name)
+            if resolved_tz is None:
+                resolved_tz = panch.get("location", {}).get("timezone")
             sc = score_day(panch, cfg, birth_nak_idx0, birth_rashi_id)
             sc["date"] = d.isoformat()
             sc["weekday"] = d.strftime("%A")
@@ -237,6 +240,11 @@ def find_muhurtas(
         "purpose": purpose,
         "purpose_label": cfg["label"],
         "date_range": {"start": start_date, "end": end_date, "days_scanned": span},
+        "location": {
+            "latitude": latitude,
+            "longitude": longitude,
+            "timezone": resolved_tz or timezone_name,
+        },
         "filter": {
             "min_score": min_score,
             "native_rashi_id": birth_rashi_id,
