@@ -577,6 +577,7 @@ export default function App() {
             longitude: form.longitude,
             timezone: form.timezone || null,
             place_name: form.place_name,
+            ayanamsa: form.ayanamsa || "lahiri",
         });
     };
 
