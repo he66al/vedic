@@ -1,6 +1,24 @@
 // Simple i18n dictionary. Keys used across Kundali + Panchang UI.
+// New languages can be added: register in LANGUAGES below; missing keys fall
+// back to English automatically (see the `t` helper).
+export const LANGUAGES = [
+    { id: "en", label: "English",    native: "EN" },
+    { id: "hi", label: "हिन्दी",     native: "हिं" },
+    { id: "sa", label: "संस्कृतम्",   native: "सं" },
+    { id: "ta", label: "தமிழ்",      native: "த" },
+    { id: "bn", label: "বাংলা",      native: "বা" },
+    { id: "mr", label: "मराठी",       native: "म" },
+    { id: "gu", label: "ગુજરાતી",    native: "ગુ" },
+    { id: "te", label: "తెలుగు",     native: "తె" },
+];
+
 export const translations = {
     en: {
+        // Brand
+        brand_name: "VedicPanchanga",
+        brand_domain: "vedicpanchanga.com",
+        brand_tagline: "Sidereal · Lahiri",
+
         // Header
         app_title: "Jyotiṣa Kuṇḍalī",
         app_subtitle: "A Vedic birth chart — drawn in the North Indian tradition",
