@@ -1,42 +1,38 @@
 # Jyotiṣa Kuṇḍalī — Vedic Astrology & Drik Panchang
 
 ## Original Problem Statement
-Build a Vedic astrology web app with Swiss Ephemeris. Calculate D1/D2/D9 charts with North-Indian diamond SVG plus Nakshatra, Vimshottari Dasha, Ashtakavarga. Extended with full Drik-style Panchang (5 limbs, Samvatsara, muhurtas, calendars, lagna transits, chandrabalam/tarabalam). Added multi-ayanamsa support, North/South chart toggle, English/Hindi UI, and advanced yogas.
+Build a Vedic astrology web app with Swiss Ephemeris. Compute D1..D60 divisional charts, comprehensive Drik Panchang with all classical elements, multi-ayanamsa support, North/South chart styles, bilingual UI (English/Hindi), and chart export (PNG/PDF/Share).
 
-## User Choices
-- FastAPI backend · Pre-fill Delhi 1990-01-01 12:00
-- Added: Nakshatra + Vimshottari Dasha + Ashtakavarga
-- Traditional theme (Saffron/Crimson/Gold parchment)
-- Full Swiss Ephemeris files
-- 7 ayanamsa options (NC Lahiri, KP New/Old, Raman, KP Khullar, Sayana, Manoj)
-- Chart styles: North Indian (diamond) + South Indian (4x4 grid)
-- Bilingual UI: English / Hindi (EN/हिं toggle, no flags)
+## Implemented Features
+- **Charts**: 16 divisional charts — D1 Rāśi, D2 Horā, D3 Drekkāṇa, D4 Chaturthāṁśa, D7 Saptāṁśa, D9 Navāṁśa, D10 Daśāṁśa, D12 Dvādaśāṁśa, D16 Ṣoḍaśāṁśa, D20 Viṁśāṁśa, D24 Chaturviṁśāṁśa, D27 Bhāṁśa, D30 Triṁśāṁśa (special uneven segments), D40 Khavedāṁśa, D45 Akṣavedāṁśa, D60 Ṣaṣṭyāṁśa.
+- **Chart Styles**: North Indian diamond (rashi numbers prominent) + South Indian 4×4 grid (fixed rashis, ascendant marker).
+- **Ayanamsa options**: NC Lahiri (default), KP New, KP Old, BV Raman, KP Khullar, Sāyana Tropical, Manoj.
+- **Planet details**: positions, nakshatra + pada, retrograde, sign lord, house.
+- **Vimshottari Dasha** (9 mahadashas, 120y), **Ashtakavarga** (BAV per planet + SAV=337 canonical).
+- **Drik Panchang** (15+ sections): 5 limbs with intra-day transitions; Samvatsara (Vikram + Shaka); Chandramasa (Amanta/Purnimanta); Pravishte; Ritu (Drik+Vedic); Ayana; Dinamana/Ratrimana/Madhyahna; 7 auspicious muhurtas (Brahma, Pratah Sandhya, Abhijit, Vijay, Godhuli, Sayahna Sandhya, Nishita); Inauspicious (Rahu Kalam, Yamaganda, Gulika, Dur Muhurtam, Bhadra, Varjyam); Amrit Kalam; Sarvartha & Amrita Siddhi Yogas; Udaya Lagna transits (12–13 rashi transits); Chandrabalam + Tarabalam lists; Disha Shool, Rahu Vasa, Chandra Vasa; Calendars (Kaliyuga year, Kali Ahargana, Julian Day, MJD, Rata Die, Lahiri Ayanamsha, National Civil & Nirayana dates).
+- **Export**: Download chart as PNG · Generate multi-page PDF of all 16 vargas · Share via Web Share API with PNG download fallback.
+- **i18n**: English / Hindi toggle (EN / हिं, no flags) with localStorage persistence.
+- **City search**: Nominatim autocomplete, "Use My Location" button with reverse-geocoding.
 
-## Backend (`/app/backend`)
-- `calculator.py` — D1/D2/D9, Vimshottari Dasha, Ashtakavarga (SAV=337). Accepts `ayanamsa` param.
-- `ayanamsa.py` — 7 mappings (lahiri, kp_new, kp_old, raman, kp_khullar, sayan, manoj). Sayan = tropical (no sidereal shift).
-- `panchang.py` / `advanced_panchang.py` — Drik panchang with Varjyam, Amrit Kalam, Sarvartha Siddhi, Amrita Siddhi yogas.
-- `constants.py` / `panchang_constants.py` — Sanskrit tables.
-- `server.py` — `POST /api/calculate`, `GET /api/get-panchang`, `GET /api/ayanamsa-options`.
+## Architecture
+- Backend (FastAPI + pyswisseph): `calculator.py`, `vargas.py`, `ayanamsa.py`, `panchang.py`, `advanced_panchang.py`, `constants.py`, `panchang_constants.py`, `server.py`.
+- Frontend (React + TailwindCSS): `App.js`, `components/VedicChart.jsx`, `components/SouthIndianChart.jsx`, `components/PanchangView.jsx`, `i18n.js`.
+- Backend endpoints: `POST /api/calculate`, `GET /api/get-panchang`, `GET /api/ayanamsa-options`.
+- Swiss Ephemeris files in `backend/ephe/` (sepl_18, semo_18, seas_18).
 
-## Frontend (`/app/frontend/src`)
-- `i18n.js` — I18nProvider, EN/HI dictionary (~150 keys), LanguageSwitcher component.
-- `App.js` — top-right language switcher, nav (Kundali/Panchanga), BirthForm with ayanamsa-select + chart-style toggle, BirthHeader with timezone-respecting dates.
-- `components/VedicChart.jsx` — North-Indian diamond with prominent rashi numbers (1-12).
-- `components/SouthIndianChart.jsx` — 4x4 grid, fixed rashis, ascendant marker (X + "Lg").
-- `components/PanchangView.jsx` — 12 Drik sections; now includes Amrit Kalam / Varjyam / Sarvartha Siddhi / Amrita Siddhi yoga bands.
+## Test Status (Iteration 4)
+- Backend: **72/72 pytest passing** (vargas structure, D30 special rules, D9 navamsa, backward-compat, panchang Drik reference for Kelowna, ayanamsa variants, varjyam/amrit/siddhi yogas)
+- Frontend: **100%** (all 16 tabs, chart styles, export buttons, i18n toggle, ayanamsa dropdown, panchang sections, no console errors)
 
-## Iterations
-- **Iter 1** (D1/D2/D9 + Dasha + Ashtakavarga): 19/20 backend → fixed SAV=337.
-- **Iter 2** (comprehensive Drik Panchang): 44/44 backend + 100% frontend.
-- **Iter 3** (ayanamsa + N/S chart + i18n + advanced yogas): 57/57 backend + 92% frontend; fixed App.js onSubmit to include ayanamsa.
-- Drik reference cross-checked for Kelowna 2026-04-20 (all values match within ~1 min).
+## Test Files
+- `tests/test_vedic_api.py`
+- `tests/test_panchang_detailed.py`
+- `tests/test_iteration3.py`
+- `tests/test_iteration4_vargas.py`
 
-## Tests
-- `tests/test_vedic_api.py`, `tests/test_panchang_detailed.py`, `tests/test_iteration3.py`
-
-## Backlog
-- P1: Day Festivals & Events feed
-- P1: Antardasha sub-periods within current Mahadasha
-- P2: Shareable image/PDF export of chart & panchang
-- P2: Additional Dasha systems (Ashtottari, Yogini)
+## Future Backlog
+- P1: Muhurta Finder (search auspicious windows by purpose & date range with Chandrabalam/Tarabalam filter)
+- P1: Antardasha sub-periods inside current Mahadasha
+- P1: Day Festivals & Events feed (Ekadashi/Purnima/Amavasya + regional)
+- P2: Saved charts / profile feature
+- P2: Progress indicator for PDF export (~11s for all 16 vargas)
