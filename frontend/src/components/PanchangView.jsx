@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useI18n } from "../i18n";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -178,6 +179,7 @@ function TimeBand({ title, window, color, testId, desc, tz, refDate }) {
 
 // ---- Main Panchang View ----
 export default function PanchangView({ defaultLocation }) {
+    const { t } = useI18n();
     const today = new Date().toISOString().slice(0, 10);
     const [date, setDate] = useState(today);
     const [loc, setLoc] = useState(defaultLocation || {
@@ -245,13 +247,13 @@ export default function PanchangView({ defaultLocation }) {
             <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                     <div className="md:col-span-3">
-                        <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">Date</label>
+                        <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">{t("date")}</label>
                         <input data-testid="panchang-date-input" type="date" value={date}
                                onChange={(e) => setDate(e.target.value)}
                                className="w-full bg-white border border-[#E3D5C1] rounded-sm px-3 py-2.5 font-sans text-sm focus:outline-none focus:ring-1 focus:ring-[#D35400]" />
                     </div>
                     <div className="md:col-span-5">
-                        <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">Place</label>
+                        <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">{t("place")}</label>
                         <CitySearch value={loc.place_name}
                                     onSelect={(p) => setLoc((v) => ({ ...v, ...p, timezone: null }))} />
                     </div>
@@ -262,13 +264,13 @@ export default function PanchangView({ defaultLocation }) {
                                 <circle cx="12" cy="10" r="3"/>
                                 <path d="M12 2a8 8 0 0 1 8 8c0 5.4-8 12-8 12S4 15.4 4 10a8 8 0 0 1 8-8z"/>
                             </svg>
-                            Use My Location
+                            {t("use_my_location")}
                         </button>
                     </div>
                     <div className="md:col-span-2">
                         <button data-testid="panchang-fetch-btn" onClick={() => fetchPanchang()} disabled={loading}
                                 className="w-full bg-[#8B1E0F] hover:bg-[#6A160A] disabled:opacity-60 text-[#FCFAF5] font-semibold text-sm px-4 py-2.5 rounded-sm transition-colors">
-                            {loading ? "Loading..." : "Show Panchang"}
+                            {loading ? t("loading") : t("show_panchang")}
                         </button>
                     </div>
                 </div>
@@ -286,7 +288,7 @@ export default function PanchangView({ defaultLocation }) {
                 <>
                     {/* Date Header */}
                     <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6">
-                        <p className="text-xs uppercase tracking-[0.2em] text-[#635647] font-bold">Daily Drik Panchānga</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-[#635647] font-bold">{t("panchang_title")}</p>
                         <h2 className="font-serif text-3xl lg:text-4xl text-[#8B1E0F] mt-1" data-testid="panchang-title">
                             {new Date(data.date + "T12:00:00").toLocaleDateString("en-IN", {
                                 weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -294,27 +296,27 @@ export default function PanchangView({ defaultLocation }) {
                         </h2>
                         <p className="text-sm text-[#635647] mt-1">{loc.place_name} · {data.location.timezone}</p>
                         <div className="divider-ornate my-3">
-                            <span className="font-serif italic text-sm">॥ पञ्चाङ्ग ॥</span>
+                            <span className="font-serif italic text-sm">{t("panchang_stamp")}</span>
                         </div>
                     </div>
 
                     {/* Sunrise & Sunset / Moonrise & Moonset */}
-                    <Section title="Sunrise & Sunset · Moonrise & Moonset" testId="section-sun-moon">
+                    <Section title={t("sun_moon")} testId="section-sun-moon">
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="p-4 bg-[#F4F1E8] border border-[#E3D5C1] rounded-sm" data-testid="sunrise-block">
-                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">Sunrise</p>
+                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">{t("sunrise")}</p>
                                 <p className="font-serif text-2xl text-[#D35400] tabular-nums mt-1">{fmtTime(data.sun_moon.sunrise, tz)}</p>
                             </div>
                             <div className="p-4 bg-[#F4F1E8] border border-[#E3D5C1] rounded-sm" data-testid="sunset-block">
-                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">Sunset</p>
+                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">{t("sunset")}</p>
                                 <p className="font-serif text-2xl text-[#8B1E0F] tabular-nums mt-1">{fmtTime(data.sun_moon.sunset, tz)}</p>
                             </div>
                             <div className="p-4 bg-[#F4F1E8] border border-[#E3D5C1] rounded-sm" data-testid="moonrise-block">
-                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">Moonrise</p>
+                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">{t("moonrise")}</p>
                                 <p className="font-serif text-2xl text-[#2C241B] tabular-nums mt-1">{fmtTimeDM(data.sun_moon.moonrise, tz, refDate)}</p>
                             </div>
                             <div className="p-4 bg-[#F4F1E8] border border-[#E3D5C1] rounded-sm" data-testid="moonset-block">
-                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">Moonset</p>
+                                <p className="text-[11px] uppercase tracking-[0.15em] text-[#635647] font-bold">{t("moonset")}</p>
                                 <p className="font-serif text-2xl text-[#2C241B] tabular-nums mt-1">{fmtTimeDM(data.sun_moon.moonset, tz, refDate)}</p>
                             </div>
                         </div>
@@ -405,7 +407,7 @@ export default function PanchangView({ defaultLocation }) {
                     </Section>
 
                     {/* Auspicious Timings */}
-                    <Section title="Auspicious Timings (Śubha)" testId="section-auspicious">
+                    <Section title={t("auspicious_title")} testId="section-auspicious">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             <TimeBand testId="band-brahma" title="Brahma Muhūrta"
                                       window={data.auspicious_timings.brahma_muhurta}
@@ -453,7 +455,7 @@ export default function PanchangView({ defaultLocation }) {
                     </Section>
 
                     {/* Inauspicious Timings */}
-                    <Section title="Inauspicious Timings (Aśubha)" testId="section-inauspicious">
+                    <Section title={t("inauspicious_title")} testId="section-inauspicious">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             <TimeBand testId="band-rahu" title="Rāhu Kālam"
                                       window={data.inauspicious_timings.rahu_kalam}
@@ -485,7 +487,7 @@ export default function PanchangView({ defaultLocation }) {
                     </Section>
 
                     {/* Udaya Lagna */}
-                    <Section title="Udaya Lagna Muhūrta" subtitle="Ascendant transits for the day" testId="section-udaya">
+                    <Section title={t("udaya_lagna_title")} subtitle={t("udaya_lagna_sub")} testId="section-udaya">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                             {data.udaya_lagna.map((l, i) => (
                                 <div key={i} className="flex items-baseline justify-between border-b border-[#E3D5C1]/50 py-1.5 gap-3 text-sm" data-testid={`lagna-${i}`}>
@@ -500,7 +502,7 @@ export default function PanchangView({ defaultLocation }) {
 
                     {/* Chandrabalam & Tarabalam */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Section title="Chandrabalam" subtitle="Good Moon-strength for these Rāśi" testId="section-chandrabalam">
+                        <Section title={t("chandrabalam_title")} subtitle={t("chandrabalam_sub")} testId="section-chandrabalam">
                             <div className="flex flex-wrap gap-2">
                                 {data.chandrabalam.good_rashis.map((r, i) => (
                                     <span key={i} className="px-3 py-1.5 bg-[#F4F1E8] border border-[#C5A059] rounded-sm text-sm font-serif text-[#2C241B]">
@@ -509,7 +511,7 @@ export default function PanchangView({ defaultLocation }) {
                                 ))}
                             </div>
                         </Section>
-                        <Section title="Tārabalam" subtitle="Good Star-strength for these Nakṣatra" testId="section-tarabalam">
+                        <Section title={t("tarabalam_title")} subtitle={t("tarabalam_sub")} testId="section-tarabalam">
                             <div className="flex flex-wrap gap-2">
                                 {data.tarabalam.good_nakshatras.map((n, i) => (
                                     <span key={i} className="px-3 py-1.5 bg-[#F4F1E8] border border-[#C5A059] rounded-sm text-xs font-sans text-[#2C241B]">
@@ -520,17 +522,15 @@ export default function PanchangView({ defaultLocation }) {
                         </Section>
                     </div>
 
-                    {/* Shool and Vasa */}
-                    <Section title="Shool & Vāsa" subtitle="Directional guidance" testId="section-shool-vasa">
+                    <Section title={t("shool_vasa_title")} subtitle={t("shool_vasa_sub")} testId="section-shool-vasa">
                         <KV2 rows={[
-                            { label: "Diśā Śūla", value: data.shool_vasa.disha_shool },
-                            { label: "Rāhu Vāsa", value: data.shool_vasa.rahu_vasa },
-                            { label: "Chandra Vāsa", value: data.shool_vasa.chandra_vasa },
+                            { label: t("disha_shool"), value: data.shool_vasa.disha_shool },
+                            { label: t("rahu_vasa"), value: data.shool_vasa.rahu_vasa },
+                            { label: t("chandra_vasa"), value: data.shool_vasa.chandra_vasa },
                         ]} />
                     </Section>
 
-                    {/* Other Calendars & Epoch */}
-                    <Section title="Other Calendars & Epoch" testId="section-calendars">
+                    <Section title={t("calendars_title")} testId="section-calendars">
                         <KV2 rows={[
                             { label: "Kaliyuga Year", value: `${data.calendars.kali_year}` },
                             { label: "Kali Ahargaṇa", value: `${data.calendars.kali_ahargana_days.toLocaleString()} days` },

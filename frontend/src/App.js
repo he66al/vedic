@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import VedicChart from "./components/VedicChart";
+import SouthIndianChart from "./components/SouthIndianChart";
 import PanchangView from "./components/PanchangView";
+import { useI18n, LanguageSwitcher } from "./i18n";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -19,6 +21,7 @@ const DEFAULT_FORM = {
     longitude: 77.2090,
     timezone: "Asia/Kolkata",
     ayanamsa: "lahiri",
+    chart_style: "north",
 };
 
 const AYANAMSA_OPTIONS = [
@@ -63,7 +66,7 @@ function MandalaLoader({ size = 24 }) {
     );
 }
 
-function CitySearch({ value, onSelect }) {
+function CitySearch({ value, onSelect, label, placeholder }) {
     const [query, setQuery] = useState(value || "");
     const [results, setResults] = useState([]);
     const [open, setOpen] = useState(false);
@@ -125,7 +128,7 @@ function CitySearch({ value, onSelect }) {
     return (
         <div className="relative" ref={boxRef}>
             <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
-                Place of Birth
+                {label || "Place of Birth"}
             </label>
             <div className="relative">
                 <input
@@ -134,7 +137,7 @@ function CitySearch({ value, onSelect }) {
                     value={query}
                     onChange={onChange}
                     onFocus={() => query.length >= 2 && setOpen(true)}
-                    placeholder="Search city..."
+                    placeholder={placeholder || "Search city..."}
                     className="w-full bg-white border border-[#E3D5C1] rounded-sm px-3 py-2.5 font-sans text-sm text-[#2C241B] focus:outline-none focus:ring-1 focus:ring-[#D35400] focus:border-[#D35400]"
                 />
                 {loading && (
@@ -165,6 +168,7 @@ function CitySearch({ value, onSelect }) {
 }
 
 function BirthForm({ form, setForm, onSubmit, loading }) {
+    const { t } = useI18n();
     const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
     return (
         <form
@@ -177,7 +181,7 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
         >
             <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
-                    Date of Birth
+                    {t("date_of_birth")}
                 </label>
                 <input
                     data-testid="birth-date-input"
@@ -190,7 +194,7 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
             </div>
             <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
-                    Time of Birth
+                    {t("time_of_birth")}
                 </label>
                 <input
                     data-testid="birth-time-input"
@@ -209,13 +213,15 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
                         place_name,
                         latitude,
                         longitude,
-                        timezone: null, // let backend infer
+                        timezone: null,
                     }));
                 }}
+                label={t("place_of_birth")}
+                placeholder={t("search_city")}
             />
             <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
-                    Ayanāṁśa
+                    {t("ayanamsa")}
                 </label>
                 <select
                     data-testid="ayanamsa-select"
@@ -228,10 +234,35 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
                     ))}
                 </select>
             </div>
+            <div>
+                <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
+                    {t("chart_style")}
+                </label>
+                <div className="flex rounded-sm border border-[#E3D5C1] overflow-hidden" data-testid="chart-style-toggle">
+                    {[
+                        { id: "north", label: t("north_indian") },
+                        { id: "south", label: t("south_indian") },
+                    ].map((o) => (
+                        <button
+                            key={o.id}
+                            type="button"
+                            data-testid={`chart-style-${o.id}`}
+                            onClick={() => update("chart_style", o.id)}
+                            className={`flex-1 px-3 py-2 text-xs font-semibold tracking-wide transition-colors ${
+                                (form.chart_style || "north") === o.id
+                                    ? "bg-[#8B1E0F] text-[#FCFAF5]"
+                                    : "bg-white text-[#2C241B] hover:bg-[#F4F1E8]"
+                            }`}
+                        >
+                            {o.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
-                        Latitude
+                        {t("latitude")}
                     </label>
                     <input
                         data-testid="latitude-input"
@@ -244,7 +275,7 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
                 </div>
                 <div>
                     <label className="block text-xs uppercase tracking-[0.15em] text-[#635647] font-bold mb-1.5">
-                        Longitude
+                        {t("longitude")}
                     </label>
                     <input
                         data-testid="longitude-input"
@@ -265,10 +296,10 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
                 {loading ? (
                     <>
                         <MandalaLoader size={18} />
-                        <span>Casting Chart...</span>
+                        <span>{t("casting_chart")}</span>
                     </>
                 ) : (
-                    "Generate Kundali"
+                    t("generate_kundali")
                 )}
             </button>
         </form>
@@ -276,29 +307,32 @@ function BirthForm({ form, setForm, onSubmit, loading }) {
 }
 
 function BirthHeader({ data, placeName }) {
+    const { t } = useI18n();
     if (!data?.birth) return null;
     const b = data.birth;
-    const local = new Date(b.local_time);
-    const fmt = local.toLocaleString("en-IN", {
+    // IMPORTANT: render time using the BIRTH timezone, not the browser timezone,
+    // otherwise the entered local time appears shifted.
+    const fmt = new Date(b.local_time).toLocaleString("en-IN", {
         dateStyle: "full",
         timeStyle: "short",
+        timeZone: b.timezone,
     });
     return (
         <div data-testid="birth-header" className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift">
-            <p className="text-xs uppercase tracking-[0.2em] text-[#635647] font-bold">Birth Details</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#635647] font-bold">{t("birth_details")}</p>
             <h2 className="font-serif text-2xl lg:text-3xl text-[#2C241B] mt-1">
-                {placeName || "Unnamed Native"}
+                {placeName || t("unnamed_native")}
             </h2>
             <div className="divider-ornate my-3">
                 <span className="font-serif italic text-sm">॥ कुण्डली ॥</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-[#2C241B]">
-                <div><span className="text-[#635647]">Local:</span> {fmt}</div>
-                <div><span className="text-[#635647]">Timezone:</span> {b.timezone}</div>
-                <div><span className="text-[#635647]">Latitude:</span> {b.latitude.toFixed(4)}°</div>
-                <div><span className="text-[#635647]">Longitude:</span> {b.longitude.toFixed(4)}°</div>
-                <div><span className="text-[#635647]">Ayanamsa:</span> {b.ayanamsa.toFixed(4)}° <span className="text-[#C5A059]">({b.ayanamsa_label || "Lahiri"})</span></div>
-                <div><span className="text-[#635647]">Julian Day:</span> {b.julian_day.toFixed(3)}</div>
+                <div><span className="text-[#635647]">{t("local")}:</span> {fmt}</div>
+                <div><span className="text-[#635647]">{t("timezone")}:</span> {b.timezone}</div>
+                <div><span className="text-[#635647]">{t("latitude")}:</span> {b.latitude.toFixed(4)}°</div>
+                <div><span className="text-[#635647]">{t("longitude")}:</span> {b.longitude.toFixed(4)}°</div>
+                <div><span className="text-[#635647]">{t("ayanamsa")}:</span> {b.ayanamsa.toFixed(4)}° <span className="text-[#C5A059]">({b.ayanamsa_label || "Lahiri"})</span></div>
+                <div><span className="text-[#635647]">{t("julian_day")}:</span> {b.julian_day.toFixed(3)}</div>
             </div>
         </div>
     );
@@ -343,19 +377,20 @@ function PlanetsTable({ planets, ascendant }) {
 }
 
 function DashaTable({ dasha }) {
+    const { t } = useI18n();
     if (!dasha || !dasha.length) return null;
     const fmt = (iso) => new Date(iso).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
     return (
         <div data-testid="dasha-table" className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6">
-            <h3 className="font-serif text-xl text-[#2C241B] mb-4">Vimshottari Mahādaśā</h3>
-            <p className="text-xs text-[#635647] mb-3">Full 120-year planetary cycle from birth</p>
+            <h3 className="font-serif text-xl text-[#2C241B] mb-4">{t("dasha_title")}</h3>
+            <p className="text-xs text-[#635647] mb-3">{t("dasha_subtitle")}</p>
             <table className="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr className="text-[#635647] uppercase text-xs tracking-wider border-b-2 border-[#E3D5C1]">
-                        <th className="py-2 pr-3">Mahādaśā Lord</th>
-                        <th className="py-2 pr-3">Years</th>
-                        <th className="py-2 pr-3">From</th>
-                        <th className="py-2">To</th>
+                        <th className="py-2 pr-3">{t("dasha_lord")}</th>
+                        <th className="py-2 pr-3">{t("dasha_years")}</th>
+                        <th className="py-2 pr-3">{t("dasha_from")}</th>
+                        <th className="py-2">{t("dasha_to")}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -374,24 +409,25 @@ function DashaTable({ dasha }) {
 }
 
 function AshtakavargaTable({ ashtakavarga }) {
+    const { t } = useI18n();
     if (!ashtakavarga) return null;
     const { bav, sav } = ashtakavarga;
     const planetOrder = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
     const signShort = ["Ar","Ta","Ge","Cn","Le","Vi","Li","Sc","Sg","Cp","Aq","Pi"];
     return (
         <div data-testid="ashtakavarga-table" className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 overflow-x-auto">
-            <h3 className="font-serif text-xl text-[#2C241B] mb-1">Aṣṭakavarga</h3>
+            <h3 className="font-serif text-xl text-[#2C241B] mb-1">{t("ashtakavarga_title")}</h3>
             <p className="text-xs text-[#635647] mb-4">
-                Bhinnāṣṭakavarga per planet and Sarvāṣṭakavarga totals across the 12 signs
+                {t("ashtakavarga_sub")}
             </p>
             <table className="w-full text-center border-collapse text-sm">
                 <thead>
                     <tr className="text-[#635647] uppercase text-xs tracking-wider border-b-2 border-[#E3D5C1]">
-                        <th className="py-2 px-2 text-left">Planet</th>
+                        <th className="py-2 px-2 text-left">{t("th_planet")}</th>
                         {signShort.map((s, i) => (
                             <th key={i} className="py-2 px-2">{s}</th>
                         ))}
-                        <th className="py-2 px-2">Total</th>
+                        <th className="py-2 px-2">{t("th_total")}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -409,7 +445,7 @@ function AshtakavargaTable({ ashtakavarga }) {
                         );
                     })}
                     <tr className="border-t-2 border-[#8B1E0F]/60 bg-[#F4F1E8]">
-                        <td className="py-2.5 px-2 text-left font-bold text-[#8B1E0F]">SAV</td>
+                        <td className="py-2.5 px-2 text-left font-bold text-[#8B1E0F]">{t("sav")}</td>
                         {sav.map((v, i) => (
                             <td key={i} className="py-2.5 px-2 tabular-nums font-bold text-[#2C241B]">{v}</td>
                         ))}
@@ -423,78 +459,90 @@ function AshtakavargaTable({ ashtakavarga }) {
     );
 }
 
-function ChartTabs({ data }) {
+function ChartTabs({ data, chartStyle }) {
+    const { t } = useI18n();
     const [tab, setTab] = useState("d1");
     const tabs = [
-        { id: "d1", label: "D1 · Rāśi", subtitle: "Birth Chart" },
-        { id: "d2", label: "D2 · Horā", subtitle: "Wealth" },
-        { id: "d9", label: "D9 · Navāṁśa", subtitle: "Destiny / Marriage" },
+        { id: "d1", label: t("tab_d1_rashi"), subtitle: t("tab_d1_sub") },
+        { id: "d2", label: t("tab_d2_hora"), subtitle: t("tab_d2_sub") },
+        { id: "d9", label: t("tab_d9_nav"), subtitle: t("tab_d9_sub") },
     ];
     const chartMap = {
-        d1: { map: data.d1_chart, asc: data.d1_asc_sign, title: "Rāśi Chart (D1)" },
-        d2: { map: data.d2_chart, asc: data.d2_asc_sign, title: "Horā Chart (D2)" },
-        d9: { map: data.d9_chart, asc: data.d9_asc_sign, title: "Navāṁśa Chart (D9)" },
+        d1: { map: data.d1_chart, asc: data.d1_asc_sign, title: t("rashi_chart_d1") },
+        d2: { map: data.d2_chart, asc: data.d2_asc_sign, title: t("hora_chart_d2") },
+        d9: { map: data.d9_chart, asc: data.d9_asc_sign, title: t("navamsa_chart_d9") },
     };
     const active = chartMap[tab];
+    const ChartComponent = chartStyle === "south" ? SouthIndianChart : VedicChart;
 
     return (
         <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-8 card-lift">
             <div role="tablist" className="flex gap-6 border-b border-[#E3D5C1] mb-6 overflow-x-auto">
-                {tabs.map((t) => (
+                {tabs.map((tb) => (
                     <button
-                        key={t.id}
-                        data-testid={`tab-${t.id}`}
+                        key={tb.id}
+                        data-testid={`tab-${tb.id}`}
                         role="tab"
-                        aria-selected={tab === t.id}
-                        onClick={() => setTab(t.id)}
+                        aria-selected={tab === tb.id}
+                        onClick={() => setTab(tb.id)}
                         className={`py-3 px-1 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
-                            tab === t.id
+                            tab === tb.id
                                 ? "text-[#8B1E0F] border-[#8B1E0F]"
                                 : "text-[#635647] border-transparent hover:text-[#8B1E0F]"
                         }`}
                     >
                         <div className="flex flex-col items-start">
-                            <span className="tracking-wide">{t.label}</span>
+                            <span className="tracking-wide">{tb.label}</span>
                             <span className="text-[10px] uppercase tracking-[0.15em] text-[#C5A059] mt-0.5">
-                                {t.subtitle}
+                                {tb.subtitle}
                             </span>
                         </div>
                     </button>
                 ))}
             </div>
-            <VedicChart
+            <ChartComponent
                 houseMap={active.map}
                 ascSign={active.asc}
                 title={active.title}
                 testId={`chart-${tab}`}
             />
             <p className="text-center text-xs text-[#635647] mt-4 italic">
-                Lagna (Ascendant) occupies the top-center diamond · Houses proceed anti-clockwise
+                {t("lagna_caption")}
             </p>
         </div>
     );
 }
 
 function Header() {
+    const { t } = useI18n();
     return (
-        <header className="text-center py-12 lg:py-16 relative">
-            <div className="divider-ornate mb-3 max-w-xs mx-auto">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">Sidereal · Lahiri</span>
+        <header className="relative py-12 lg:py-16">
+            <div className="absolute top-4 right-0 flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#635647] font-bold">
+                    {t("language")}
+                </span>
+                <LanguageSwitcher />
             </div>
-            <h1 className="font-serif text-5xl lg:text-6xl text-[#8B1E0F] tracking-tight font-semibold">
-                Jyotiṣa Kuṇḍalī
-            </h1>
-            <p className="font-serif italic text-lg text-[#635647] mt-2">
-                A Vedic birth chart — drawn in the North Indian tradition
-            </p>
-            <div className="divider-ornate mt-4 max-w-xs mx-auto">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">॥ ज्योतिष ॥</span>
+            <div className="text-center">
+                <div className="divider-ornate mb-3 max-w-xs mx-auto">
+                    <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">{t("sidereal_lahiri")}</span>
+                </div>
+                <h1 className="font-serif text-5xl lg:text-6xl text-[#8B1E0F] tracking-tight font-semibold">
+                    {t("app_title")}
+                </h1>
+                <p className="font-serif italic text-lg text-[#635647] mt-2">
+                    {t("app_subtitle")}
+                </p>
+                <div className="divider-ornate mt-4 max-w-xs mx-auto">
+                    <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">{t("jyotisha")}</span>
+                </div>
             </div>
         </header>
     );
 }
 
 export default function App() {
+    const { t } = useI18n();
     const [view, setView] = useState("kundali"); // "kundali" | "panchang"
     const [form, setForm] = useState(DEFAULT_FORM);
     const [data, setData] = useState(null);
@@ -544,22 +592,22 @@ export default function App() {
                     className="flex justify-center gap-3 sm:gap-8 mb-10 border-b border-[#E3D5C1] pb-0"
                 >
                     {[
-                        { id: "kundali", label: "Kuṇḍalī · Birth Chart" },
-                        { id: "panchang", label: "Pañcāṅga · Today" },
-                    ].map((t) => (
+                        { id: "kundali", label: t("nav_kundali") },
+                        { id: "panchang", label: t("nav_panchang") },
+                    ].map((tb) => (
                         <button
-                            key={t.id}
-                            data-testid={`nav-${t.id}`}
+                            key={tb.id}
+                            data-testid={`nav-${tb.id}`}
                             role="tab"
-                            aria-selected={view === t.id}
-                            onClick={() => setView(t.id)}
+                            aria-selected={view === tb.id}
+                            onClick={() => setView(tb.id)}
                             className={`py-3 px-4 sm:px-6 text-sm sm:text-base font-serif tracking-wide border-b-2 transition-all whitespace-nowrap ${
-                                view === t.id
+                                view === tb.id
                                     ? "text-[#8B1E0F] border-[#8B1E0F]"
                                     : "text-[#635647] border-transparent hover:text-[#8B1E0F]"
                             }`}
                         >
-                            {t.label}
+                            {tb.label}
                         </button>
                     ))}
                 </nav>
@@ -568,9 +616,9 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 pb-20">
                         <aside className="lg:col-span-4 xl:col-span-3">
                             <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift sticky top-6">
-                                <h2 className="font-serif text-2xl text-[#2C241B] mb-1">Birth Details</h2>
+                                <h2 className="font-serif text-2xl text-[#2C241B] mb-1">{t("birth_details")}</h2>
                                 <p className="text-xs text-[#635647] mb-5">
-                                    Enter the native's time &amp; place of birth
+                                    {t("enter_native_time_place")}
                                 </p>
                                 <BirthForm
                                     form={form}
@@ -598,7 +646,7 @@ export default function App() {
                             {data && (
                                 <>
                                     <BirthHeader data={data} placeName={form.place_name} />
-                                    <ChartTabs data={data} />
+                                    <ChartTabs data={data} chartStyle={form.chart_style || "north"} />
                                     <PlanetsTable
                                         planets={data.planets_data}
                                         ascendant={data.ascendant}
@@ -626,9 +674,9 @@ export default function App() {
 
                 <footer className="text-center text-xs text-[#635647] pb-10">
                     <div className="divider-ornate max-w-md mx-auto mb-3">
-                        <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">॥ शुभम् ॥</span>
+                        <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">{t("shubham")}</span>
                     </div>
-                    Computed with Swiss Ephemeris · Lahiri Ayanāṁśa · Whole-Sign Houses
+                    {t("computed_with")}
                 </footer>
             </div>
         </div>
