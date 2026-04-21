@@ -251,7 +251,7 @@ export default function MuhurtaFinder({ defaultLocation }) {
             <aside className="lg:col-span-4 xl:col-span-3">
                 <div
                     data-testid="muhurta-form"
-                    className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift sticky top-6"
+                    className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-4 sm:p-5 lg:p-6 card-lift lg:sticky lg:top-20"
                 >
                     <h2 className="font-serif text-2xl text-[#2C241B] mb-1">{t("muhurta_title")}</h2>
                     <p className="text-xs text-[#635647] mb-5">{t("muhurta_subtitle")}</p>

@@ -185,6 +185,10 @@ export const translations = {
         national_nirayana_date: "National Nirayana Date",
     },
     hi: {
+        brand_name: "वैदिक पञ्चाङ्ग",
+        brand_domain: "vedicpanchanga.com",
+        brand_tagline: "सायन · लाहिड़ी",
+
         app_title: "ज्योतिष कुण्डली",
         app_subtitle: "उत्तर भारतीय परम्परा में निर्मित वैदिक जन्म-कुण्डली",
         sidereal_lahiri: "सायन · लाहिड़ी",
@@ -364,29 +368,32 @@ export function useI18n() {
 
 export function LanguageSwitcher({ testId = "lang-switcher" }) {
     const { lang, setLang } = useI18n();
-    const options = [
-        { id: "en", label: "EN" },
-        { id: "hi", label: "हिं" },
-    ];
     return (
-        <div
-            data-testid={testId}
-            className="inline-flex items-center border border-[#C5A059] rounded-sm overflow-hidden bg-[#FCFAF5]"
-        >
-            {options.map((o) => (
-                <button
-                    key={o.id}
-                    data-testid={`${testId}-${o.id}`}
-                    onClick={() => setLang(o.id)}
-                    className={`px-3 py-1.5 text-xs font-semibold tracking-wider transition-colors ${
-                        lang === o.id
-                            ? "bg-[#8B1E0F] text-[#FCFAF5]"
-                            : "text-[#2C241B] hover:bg-[#F4F1E8]"
-                    }`}
-                >
-                    {o.label}
-                </button>
-            ))}
+        <div className="relative inline-block">
+            <select
+                data-testid={testId}
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                aria-label="Language"
+                className="appearance-none bg-[#FCFAF5] border border-[#C5A059] text-[#2C241B] text-xs font-semibold tracking-wider rounded-sm pl-2.5 pr-7 py-1.5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#D35400] focus:border-[#D35400] hover:bg-[#F4F1E8]"
+            >
+                {LANGUAGES.map((l) => (
+                    <option
+                        key={l.id}
+                        value={l.id}
+                        data-testid={`${testId}-opt-${l.id}`}
+                    >
+                        {l.native} · {l.label}
+                    </option>
+                ))}
+            </select>
+            <svg
+                className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[#8B1E0F]"
+                width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            >
+                <polyline points="6 9 12 15 18 9" />
+            </svg>
         </div>
     );
 }

@@ -625,28 +625,87 @@ function ChartTabs({ data, chartStyle }) {
     );
 }
 
-function Header() {
-    const { t } = useI18n();
+function MandalaMark({ size = 26 }) {
     return (
-        <header className="relative py-12 lg:py-16">
-            <div className="absolute top-4 right-0 flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#635647] font-bold">
-                    {t("language")}
-                </span>
-                <LanguageSwitcher />
-            </div>
-            <div className="text-center">
-                <div className="divider-ornate mb-3 max-w-xs mx-auto">
-                    <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">{t("sidereal_lahiri")}</span>
-                </div>
-                <h1 className="font-serif text-5xl lg:text-6xl text-[#8B1E0F] tracking-tight font-semibold">
-                    {t("app_title")}
-                </h1>
-                <p className="font-serif italic text-lg text-[#635647] mt-2">
-                    {t("app_subtitle")}
-                </p>
-                <div className="divider-ornate mt-4 max-w-xs mx-auto">
-                    <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">{t("jyotisha")}</span>
+        <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <circle cx="32" cy="32" r="28" stroke="#8B1E0F" strokeWidth="1.5" opacity="0.35" />
+            <circle cx="32" cy="32" r="20" stroke="#C5A059" strokeWidth="1.5" opacity="0.7" />
+            <circle cx="32" cy="32" r="12" stroke="#8B1E0F" strokeWidth="1.5" opacity="0.55" />
+            {Array.from({ length: 8 }).map((_, i) => {
+                const a = (i * 45 * Math.PI) / 180;
+                return (
+                    <line
+                        key={i}
+                        x1={32} y1={32}
+                        x2={32 + Math.cos(a) * 28}
+                        y2={32 + Math.sin(a) * 28}
+                        stroke="#C5A059" strokeWidth="0.9" opacity="0.55"
+                    />
+                );
+            })}
+            <circle cx="32" cy="32" r="3" fill="#8B1E0F" />
+        </svg>
+    );
+}
+
+function TopBar({ view, setView }) {
+    const { t } = useI18n();
+    const tabs = [
+        { id: "kundali",  label: t("nav_kundali") },
+        { id: "panchang", label: t("nav_panchang") },
+        { id: "muhurta",  label: t("nav_muhurta") },
+    ];
+    return (
+        <header
+            data-testid="top-bar"
+            className="sticky top-0 z-30 bg-[#FCFAF5]/95 backdrop-blur-sm border-b border-[#E3D5C1]"
+        >
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center gap-2 sm:gap-4">
+                <a
+                    href="https://vedicpanchanga.com/"
+                    data-testid="brand-logo"
+                    className="flex items-center gap-2 shrink-0 no-underline"
+                    aria-label="VedicPanchanga home"
+                >
+                    <MandalaMark size={28} />
+                    <div className="leading-tight hidden xs:block sm:block">
+                        <div className="font-serif text-base sm:text-lg text-[#8B1E0F] font-semibold tracking-tight">
+                            {t("brand_name")}
+                        </div>
+                        <div className="text-[9px] uppercase tracking-[0.2em] text-[#C5A059] hidden sm:block">
+                            {t("brand_tagline")}
+                        </div>
+                    </div>
+                </a>
+
+                <nav
+                    role="tablist"
+                    data-testid="main-nav"
+                    className="flex-1 flex justify-center gap-0.5 sm:gap-2 overflow-x-auto scrollbar-hide"
+                >
+                    {tabs.map((tb) => (
+                        <button
+                            key={tb.id}
+                            data-testid={`nav-${tb.id}`}
+                            role="tab"
+                            aria-selected={view === tb.id}
+                            onClick={() => setView(tb.id)}
+                            className={`relative whitespace-nowrap px-2.5 sm:px-4 py-2 text-[13px] sm:text-sm font-serif tracking-wide transition-colors ${
+                                view === tb.id
+                                    ? "text-[#8B1E0F]"
+                                    : "text-[#635647] hover:text-[#8B1E0F]"
+                            }`}
+                        >
+                            {tb.label}
+                            {view === tb.id && (
+                                <span className="absolute left-2 right-2 -bottom-px h-0.5 bg-[#8B1E0F] rounded-full" />
+                            )}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="shrink-0">
+                    <LanguageSwitcher />
                 </div>
             </div>
         </header>
@@ -695,43 +754,27 @@ export default function App() {
 
     return (
         <div className="parchment-bg min-h-screen">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <Header />
+            <TopBar view={view} setView={setView} />
 
-                {/* Top-level view switcher */}
-                <nav
-                    role="tablist"
-                    data-testid="main-nav"
-                    className="flex justify-center gap-3 sm:gap-8 mb-10 border-b border-[#E3D5C1] pb-0"
-                >
-                    {[
-                        { id: "kundali", label: t("nav_kundali") },
-                        { id: "panchang", label: t("nav_panchang") },
-                        { id: "muhurta", label: t("nav_muhurta") },
-                    ].map((tb) => (
-                        <button
-                            key={tb.id}
-                            data-testid={`nav-${tb.id}`}
-                            role="tab"
-                            aria-selected={view === tb.id}
-                            onClick={() => setView(tb.id)}
-                            className={`py-3 px-4 sm:px-6 text-sm sm:text-base font-serif tracking-wide border-b-2 transition-all whitespace-nowrap ${
-                                view === tb.id
-                                    ? "text-[#8B1E0F] border-[#8B1E0F]"
-                                    : "text-[#635647] border-transparent hover:text-[#8B1E0F]"
-                            }`}
-                        >
-                            {tb.label}
-                        </button>
-                    ))}
-                </nav>
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+                {/* Compact decorative intro — only on Kundali home */}
+                {view === "kundali" && (
+                    <div className="text-center mb-5 sm:mb-8">
+                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[#8B1E0F] tracking-tight font-semibold">
+                            {t("app_title")}
+                        </h1>
+                        <p className="font-serif italic text-sm sm:text-base text-[#635647] mt-1">
+                            {t("app_subtitle")}
+                        </p>
+                    </div>
+                )}
 
                 {view === "kundali" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 pb-20">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 pb-20">
                         <aside className="lg:col-span-4 xl:col-span-3">
-                            <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-5 lg:p-6 card-lift sticky top-6">
-                                <h2 className="font-serif text-2xl text-[#2C241B] mb-1">{t("birth_details")}</h2>
-                                <p className="text-xs text-[#635647] mb-5">
+                            <div className="bg-[#FCFAF5] border border-[#E3D5C1] rounded-sm p-4 sm:p-5 lg:p-6 card-lift lg:sticky lg:top-20">
+                                <h2 className="font-serif text-xl sm:text-2xl text-[#2C241B] mb-1">{t("birth_details")}</h2>
+                                <p className="text-xs text-[#635647] mb-4 sm:mb-5">
                                     {t("enter_native_time_place")}
                                 </p>
                                 <BirthForm
@@ -750,11 +793,11 @@ export default function App() {
                                 )}
                             </div>
                         </aside>
-                        <main className="lg:col-span-8 xl:col-span-9 space-y-6 lg:space-y-8">
+                        <main className="lg:col-span-8 xl:col-span-9 space-y-5 sm:space-y-6 lg:space-y-8">
                             {loading && !data && (
-                                <div className="flex flex-col items-center justify-center py-24 gap-4">
-                                    <MandalaLoader size={64} />
-                                    <p className="font-serif text-[#635647] italic">Consulting the heavens...</p>
+                                <div className="flex flex-col items-center justify-center py-20 sm:py-24 gap-4">
+                                    <MandalaLoader size={56} />
+                                    <p className="font-serif text-[#635647] italic text-sm">Consulting the heavens...</p>
                                 </div>
                             )}
                             {data && (
@@ -803,7 +846,7 @@ export default function App() {
                     <div className="divider-ornate max-w-md mx-auto mb-3">
                         <span className="text-[10px] uppercase tracking-[0.3em] text-[#C5A059]">{t("shubham")}</span>
                     </div>
-                    {t("computed_with")}
+                    {t("computed_with")} · <a href="https://vedicpanchanga.com/" className="text-[#8B1E0F] hover:underline">vedicpanchanga.com</a>
                 </footer>
             </div>
         </div>
